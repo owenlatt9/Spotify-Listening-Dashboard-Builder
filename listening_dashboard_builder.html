@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spotify Listening Dashboard Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    --bg: #14161B;
+    --surface: #1C1F26;
+    --surface-2: #22252D;
+    --border: #333743;
+    --text: #EDEAE2;
+    --text-muted: #8B8F99;
+    --pink: #F0538A;
+    --lime: #C5E85A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--pink); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 72px 24px 120px; }
+
+  .hero-label { font-size: 15px; color: var(--text-muted); margin-bottom: 10px; }
+  .hero-number-row { display:flex; align-items:baseline; gap: 18px; flex-wrap: wrap; }
+  .hero-number {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(64px, 12vw, 132px);
+    color: var(--pink);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+  }
+  .hero-unit { font-family: 'Fraunces', serif; font-size: clamp(24px, 3vw, 34px); color: var(--text-muted); font-weight: 400; }
+  .hero-sub { font-size: 17px; color: var(--text-muted); margin-top: 10px; }
+  .hero-conversions { font-size: 15px; color: var(--text-muted); margin-top: 14px; line-height: 1.6; max-width: 560px; }
+  .hero-conversions b { color: var(--lime); font-weight: 500; }
+  .hero-stats-row { display: flex; gap: 44px; margin-top: 48px; flex-wrap: wrap; }
+  .stat-num { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; }
+  .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; max-width: 140px; }
+
+  .divider { height: 1px; background: var(--border); margin: 80px 0 48px; }
+
+  .section-title { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 500; margin: 0 0 6px; }
+  .section-sub { color: var(--text-muted); font-size: 15px; margin-bottom: 28px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+  .tab {
+    padding: 7px 16px; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 14px; color: var(--text-muted); cursor: pointer; background: transparent;
+    font-family: 'Inter', sans-serif; transition: border-color .15s, color .15s;
+  }
+  .tab:hover { border-color: var(--text-muted); color: var(--text); }
+  .tab.active { border-color: var(--lime); color: var(--lime); }
+
+  /* minmax(0,1fr) + min-width:0 let the tracks shrink below their content's
+     min-content width, otherwise long track names force the page wider. */
+  .toplists-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 36px; }
+  @media (max-width: 760px) { .toplists-grid { grid-template-columns: minmax(0, 1fr); } }
+  .list-col { min-width: 0; }
+  .list-col h3 { font-size: 14px; font-weight: 600; color: var(--text-muted); margin: 0 0 14px; }
+  .rank-item { display: flex; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .rank-item:last-child { border-bottom: none; }
+  .rank-num { font-family: 'Fraunces', serif; color: var(--text-muted); font-size: 14px; width: 18px; flex-shrink: 0; }
+  .rank-main { flex: 1; min-width: 0; }
+  .rank-name { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-sub { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-minutes { font-size: 12.5px; color: var(--pink); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  .timeline-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 30px; flex-wrap: wrap; gap: 8px;}
+  .timeline-month { font-family: 'Fraunces', serif; font-size: 26px; }
+  .timeline-total { color: var(--text-muted); font-size: 14.5px; }
+
+  .slider-area { margin-bottom: 12px; }
+  input[type=range] {
+    width: 100%; -webkit-appearance: none; appearance: none; background: transparent; margin: 0; display: block;
+  }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--border); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--lime); margin-top: -6px; cursor: pointer; border: none;
+  }
+  input[type=range]::-moz-range-track { height: 2px; background: var(--border); }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--lime); border: none; cursor: pointer; }
+
+  .year-ticks { display: grid; margin-top: 8px; }
+  .year-tick { font-size: 11px; color: var(--text-muted); }
+
+  .artist-bars { margin-top: 36px; }
+  .artist-bar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .artist-bar-name { width: 150px; font-size: 13.5px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .artist-bar-track { flex: 1; background: var(--surface-2); border-radius: 3px; height: 10px; position: relative; overflow: hidden; }
+  .artist-bar-fill { background: var(--pink); height: 100%; border-radius: 3px; }
+  .artist-bar-minutes { width: 64px; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .timeline-track-note { margin-top: 24px; font-size: 13.5px; color: var(--text-muted); }
+  .timeline-track-note b { color: var(--text); font-weight: 500; }
+
+  .stacked-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; font-size: 13px; color: var(--text-muted); }
+  .stacked-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .stacked-legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .stacked-chart-wrap { position: relative; }
+  .stacked-svg { width: 100%; height: 300px; display: block; overflow: visible; }
+  .stacked-tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px; font-size: 12.5px; color: var(--text);
+    opacity: 0; transition: opacity .1s; min-width: 150px;
+  }
+  .stacked-tooltip .tt-year { color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
+  .stacked-tooltip .tt-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .stacked-tooltip .tt-row i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .stacked-tooltip .tt-row span { flex: 1; }
+
+  .hist-svg { width: 100%; height: 220px; display: block; margin-top: 8px; }
+  .box-caption { font-size: 13.5px; color: var(--text-muted); margin: 32px 0 12px; }
+  .box-svg { width: 100%; height: 220px; display: block; }
+
+  .scatter-legend { display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .scatter-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .scatter-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .scatter-wrap { position: relative; }
+  .scatter-svg { width: 100%; height: 380px; display: block; overflow: visible; }
+  .scatter-tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; font-size: 12.5px; color: var(--text); white-space: nowrap;
+    transform: translate(-50%, -100%); margin-top: -10px; opacity: 0; transition: opacity .1s;
+  }
+  .scatter-tooltip .tt-date { color: var(--text-muted); font-size: 11.5px; margin-bottom: 2px; }
+  .scatter-tooltip .tt-val { font-family: 'Fraunces', serif; font-size: 15px; color: var(--pink); }
+
+  /* 24 columns can't compress below ~430px, so this scrolls inside itself
+     on narrow screens rather than forcing the whole page sideways. */
+  .dowhour-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .dowhour-inner { min-width: 430px; }
+  .hour-labels { display: grid; grid-template-columns: 52px repeat(24, 1fr); gap: 3px; font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+  .dowhour-grid { display: grid; grid-template-columns: 52px repeat(24, 1fr); gap: 3px; }
+  .dow-label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; }
+  .dowhour-cell { aspect-ratio: 1; border-radius: 2px; border: 1px solid var(--border); }
+
+  .series-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .series-chart-wrap { position: relative; }
+  .series-svg { width: 100%; height: 280px; display: block; overflow: visible; }
+  .series-tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 12px; font-size: 12.5px; color: var(--text); white-space: nowrap;
+    transform: translate(-50%, -100%); margin-top: -14px; opacity: 0; transition: opacity .1s;
+  }
+  .series-tooltip .tt-date { color: var(--text-muted); font-size: 11.5px; margin-bottom: 2px; }
+  .series-tooltip .tt-val { font-family: 'Fraunces', serif; font-size: 15px; color: var(--pink); }
+  .series-caption { font-size: 13px; color: var(--text-muted); margin-top: 14px; }
+
+  footer { margin-top: 96px; font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+
+
+  /* theme fallbacks; overridden at runtime by applyTheme() */
+  :root { --accent: #C5E85A; --on-main: #14161B; }
+
+  /* ===== setup screen ===== */
+  .setup-wrap { max-width: 720px; margin: 0 auto; padding: 88px 24px 120px; }
+  .setup-kicker { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lime); margin-bottom: 16px; }
+  .setup-title { font-family: 'Fraunces', serif; font-size: clamp(38px, 6vw, 56px); font-weight: 600; line-height: 1.05; margin: 0 0 18px; }
+  .setup-title em { font-style: normal; color: var(--pink); }
+  .setup-lede { font-size: 16.5px; color: var(--text-muted); line-height: 1.6; margin-bottom: 40px; }
+
+  .steps { border-left: 1px solid var(--border); padding-left: 24px; margin-bottom: 40px; }
+  .step { margin-bottom: 22px; position: relative; }
+  .step:last-child { margin-bottom: 0; }
+  .step::before {
+    content: ''; position: absolute; left: -29px; top: 6px; width: 9px; height: 9px;
+    border-radius: 50%; background: var(--border);
+  }
+  .step h3 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .step p { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.55; }
+  .step code {
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; font-size: 12.5px; color: var(--lime);
+  }
+
+  .drop {
+    border: 1.5px dashed var(--border); border-radius: 12px; padding: 44px 28px;
+    text-align: center; transition: border-color .15s, background .15s; cursor: pointer;
+    background: var(--surface); margin-bottom: 20px;
+  }
+  .drop:hover, .drop.over { border-color: var(--lime); background: var(--surface-2); }
+  .drop-big { font-size: 16.5px; margin-bottom: 6px; }
+  .drop-small { font-size: 13.5px; color: var(--text-muted); }
+  .drop input[type=file] { display: none; }
+
+  .file-summary { font-size: 13.5px; color: var(--lime); margin-bottom: 24px; min-height: 20px; }
+  .file-summary.warn { color: #F0A85A; }
+
+  .opts { display: flex; flex-direction: column; gap: 22px; margin-bottom: 32px; }
+  .opt label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .opt .hint { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
+  .opt input[type=text] {
+    width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px 12px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px;
+  }
+  .opt input[type=text]:focus { outline: none; border-color: var(--lime); }
+  .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .swatches { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .swatch {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+    color: var(--text-muted); font-weight: 400; margin: 0;
+  }
+  .swatch input[type=color] {
+    -webkit-appearance: none; appearance: none; width: 34px; height: 24px;
+    border: 1px solid var(--border); border-radius: 5px; background: transparent;
+    padding: 0; cursor: pointer;
+  }
+  .swatch input[type=color]::-webkit-color-swatch-wrapper { padding: 2px; }
+  .swatch input[type=color]::-webkit-color-swatch { border: none; border-radius: 3px; }
+  .swatch input[type=color]::-moz-color-swatch { border: none; border-radius: 3px; }
+
+  .btn-primary {
+    background: var(--pink); color: var(--on-main, #14161B); border: none; border-radius: 999px;
+    padding: 13px 30px; font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: opacity .15s;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent; color: var(--text-muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 9px 20px; font-size: 13.5px; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: border-color .15s, color .15s;
+  }
+  .btn-ghost:hover { border-color: var(--lime); color: var(--lime); }
+
+  .setup-status { font-size: 14px; color: var(--text-muted); margin-top: 18px; min-height: 22px; }
+  .setup-error { color: #F0668A; }
+  .privacy-note { font-size: 13px; color: var(--text-muted); margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--border); line-height: 1.6; }
+
+  .dash-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
+  .dash-toolbar .spacer { flex: 1; }
+  .build-note { font-size: 13px; color: var(--text-muted); }
+  .hidden { display: none !important; }
+
+</style>
+</head>
+<body>
+
+
+<div class="setup-wrap" id="setup">
+  <div class="setup-kicker">Spotify listening dashboard</div>
+  <h1 class="setup-title">Turn your streaming history into <em>something worth looking at</em>.</h1>
+  <p class="setup-lede">
+    Drop in your Spotify data export and this builds an interactive dashboard of your listening &mdash;
+    top artists, how your taste shifted year to year, when you listen, and which artists stuck around.
+    Everything runs in your browser.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <h3>1. Request your data from Spotify</h3>
+      <p>Go to your Spotify <b>Account &rarr; Privacy settings</b> and request <b>Extended streaming history</b>.
+      It's the richer export &mdash; the small "Account data" one won't go back as far. Spotify emails you a zip, usually within a few days.</p>
+    </div>
+    <div class="step">
+      <h3>2. Unzip it</h3>
+      <p>You'll get a folder with files named like <code>Streaming_History_Audio_2023_1.json</code>. You may have several.</p>
+    </div>
+    <div class="step">
+      <h3>3. Drop them below</h3>
+      <p>Select every <code>Streaming_History_Audio</code> file at once. Other files in the export are ignored.</p>
+    </div>
+  </div>
+
+  <div class="drop" id="drop">
+    <input type="file" id="file-input" multiple accept=".json,.csv" />
+    <div class="drop-big">Drop your files here, or click to choose</div>
+    <div class="drop-small">Accepts the <code>.json</code> files from your export (or a parsed <code>.csv</code>)</div>
+  </div>
+  <div class="file-summary" id="file-summary"></div>
+
+  <div class="opts">
+    <div class="opt">
+      <label for="exclude-input">Artists to leave out <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+      <div class="hint">Background or study music can dominate the numbers without really being "listening." Comma-separated, exact artist names.</div>
+      <input type="text" id="exclude-input" placeholder="e.g. a lofi study channel, a white-noise artist" />
+    </div>
+    <div class="opt">
+      <label>Colors</label>
+      <div class="hint">Main colors the data (numbers, bars, lines). Accent marks things you interact with. Pick a preset or set your own.</div>
+      <div class="seg" id="preset-seg">
+        <button class="tab active" data-m="#F0538A" data-a="#C5E85A" data-b="#14161B">Hot mix</button>
+        <button class="tab" data-m="#E8A33D" data-a="#4FA8A3" data-b="#14161B">Midnight tape</button>
+        <button class="tab" data-m="#6FC1E8" data-a="#F0745A" data-b="#101418">Ember &amp; ice</button>
+        <button class="tab" data-m="#B48EF2" data-a="#E7E247" data-b="#16121F">Violet acid</button>
+        <button class="tab" data-m="#2C6E63" data-a="#4A4E9E" data-b="#F2EDE4">Daylight paper</button>
+      </div>
+      <div class="swatches">
+        <label class="swatch">Main <input type="color" id="color-main" value="#F0538A" /></label>
+        <label class="swatch">Accent <input type="color" id="color-accent" value="#C5E85A" /></label>
+        <label class="swatch">Background <input type="color" id="color-bg" value="#14161B" /></label>
+      </div>
+    </div>
+    <div class="opt">
+      <label>Minimum day to count</label>
+      <div class="hint">Days below this are treated as accidental opens rather than real sessions, and excluded from the daily-distribution stats.</div>
+      <div class="seg" id="threshold-seg">
+        <button class="tab" data-v="0">Count everything</button>
+        <button class="tab active" data-v="10">10 min</button>
+        <button class="tab" data-v="30">30 min</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="build-btn" disabled>Build my dashboard</button>
+  <div class="setup-status" id="setup-status"></div>
+
+  <p class="privacy-note">
+    <b>Your data never leaves your computer.</b> This is a single HTML file with no server and no analytics &mdash;
+    the files you pick are read and charted locally by your browser. You can save this page and run it offline.
+  </p>
+</div>
+
+
+<div id="dashboard" class="hidden">
+<div class="wrap">
+
+  <div class="dash-toolbar" id="dash-toolbar">
+    <button class="btn-ghost" id="restart-btn">&larr; Use different files</button>
+    <button class="btn-ghost" id="save-btn">Save as standalone file</button>
+    <span class="spacer"></span>
+    <span class="build-note" id="build-note"></span>
+  </div>
+
+  <header>
+    <div class="hero-label" id="hero-label">Listening, since —</div>
+    <div class="hero-number-row">
+      <div class="hero-number" id="hero-number">0</div>
+      <div class="hero-unit">hours</div>
+    </div>
+    <div class="hero-sub" id="hero-sub"></div>
+    <div class="hero-conversions" id="hero-conversions"></div>
+    <div class="hero-stats-row" id="hero-stats-row"></div>
+  </header>
+
+  <div class="divider"></div>
+
+  <section id="toplists">
+    <h2 class="section-title">Most played</h2>
+    <p class="section-sub">Ranked by total time listened. Switch years to see how your taste moved.</p>
+    <div class="tabs" id="toplist-tabs"></div>
+    <div class="toplists-grid" id="toplist-grid"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="timeline">
+    <h2 class="section-title">Month by month</h2>
+    <p class="section-sub">Drag the line to scrub through time.</p>
+    <div class="timeline-top">
+      <div class="timeline-month" id="timeline-month"></div>
+      <div class="timeline-total" id="timeline-total"></div>
+    </div>
+    <div class="slider-area">
+      <input type="range" id="timeline-slider" min="0" max="0" value="0" step="1" />
+      <div class="year-ticks" id="year-ticks"></div>
+    </div>
+    <div class="artist-bars" id="artist-bars"></div>
+    <div class="timeline-track-note" id="timeline-track-note"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="stacked">
+    <h2 class="section-title">Top artists over time</h2>
+    <p class="section-sub">Minutes per year for your all-time favorites &mdash; who's rising, who's fading.</p>
+    <div class="stacked-legend" id="stacked-legend"></div>
+    <div class="stacked-chart-wrap">
+      <svg class="stacked-svg" id="stacked-svg" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
+      <div class="stacked-tooltip" id="stacked-tooltip"></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="distribution">
+    <h2 class="section-title">How typical is a typical day?</h2>
+    <p class="section-sub" id="hist-caption"></p>
+    <svg class="hist-svg" id="hist-svg" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
+    <div class="box-caption">Same days, split by year &mdash; box shows the middle 50% of days, line is the median, whiskers reach min/max.</div>
+    <svg class="box-svg" id="box-svg" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="scatter-section">
+    <h2 class="section-title">Long-term favorites vs. one-off obsessions</h2>
+    <p class="section-sub">Each bubble is an artist &mdash; x is when you first heard them, y is total time listened, size is play count.</p>
+    <div class="scatter-legend">
+      <span><i style="background:var(--pink)"></i>Still listening (played in the last year)</span>
+      <span><i style="background:var(--text-muted)"></i>Faded out</span>
+    </div>
+    <div class="scatter-wrap">
+      <svg class="scatter-svg" id="scatter-svg" viewBox="0 0 1000 420" preserveAspectRatio="none"></svg>
+      <div class="scatter-tooltip" id="scatter-tooltip"></div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="series">
+    <div class="series-top">
+      <div>
+        <h2 class="section-title">Listening over time</h2>
+        <p class="section-sub" style="margin-bottom:0" id="series-sub">Zoomed in or out.</p>
+      </div>
+      <div class="tabs" id="series-tabs" style="margin-bottom:0"></div>
+    </div>
+    <div class="series-chart-wrap">
+      <svg class="series-svg" id="series-svg" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
+      <div class="series-tooltip" id="series-tooltip"></div>
+    </div>
+    <div class="series-caption" id="series-caption"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section id="patterns">
+    <h2 class="section-title">When you listen</h2>
+    <p class="section-sub">Time of day and day of week.</p>
+    <div class="dowhour-scroll">
+      <div class="dowhour-inner">
+        <div class="hour-labels" id="hour-labels"></div>
+        <div class="dowhour-grid" id="dowhour-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Built from Spotify's extended streaming history export.</span>
+    <span>Data through <span id="footer-last-date"></span></span>
+  </footer>
+
+</div>
+</div>
+
+<script>
+// ============================================================
+// In-browser aggregation engine.
+// Turns raw Spotify export files into the data shapes the
+// dashboard renderers expect. Mirrors the Python pipeline.
+// ============================================================
+
+const DOW_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const AVG_MOVIE_MIN = 120;
+const SEMESTER_HOURS = 15 * 15;
+
+// ---------- file reading ----------
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error('Could not read ' + file.name));
+    fr.readAsText(file);
+  });
+}
+
+// ---------- CSV parsing (handles quoted fields) ----------
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const header = rows[0];
+  return rows.slice(1).filter(r => r.length > 1).map(r => {
+    const o = {};
+    header.forEach((h, i) => { o[h] = r[i]; });
+    return o;
+  });
+}
+
+// ---------- normalize any supported input into play records ----------
+// Output record: {ts, ms, track, artist, album, uri}
+function recordsFromSpotifyJSON(json) {
+  if (!Array.isArray(json)) return [];
+  return json.map(r => ({
+    ts: r.ts || r.endTime || null,
+    ms: r.ms_played != null ? r.ms_played : (r.msPlayed != null ? r.msPlayed : 0),
+    track: r.master_metadata_track_name || r.trackName || null,
+    artist: r.master_metadata_album_artist_name || r.artistName || null,
+    album: r.master_metadata_album_album_name || null,
+    uri: r.spotify_track_uri || null,
+  }));
+}
+
+function recordsFromCSV(csvRows) {
+  return csvRows.map(r => ({
+    ts: r.datetime_utc || r.ts || r.date || null,
+    ms: r.ms_played != null && r.ms_played !== '' ? parseInt(r.ms_played, 10)
+        : (r.minutes_played ? Math.round(parseFloat(r.minutes_played) * 60000) : 0),
+    track: r.track || r.master_metadata_track_name || null,
+    artist: r.artist || r.master_metadata_album_artist_name || null,
+    album: r.album || r.master_metadata_album_album_name || null,
+    uri: r.track_uri || r.spotify_track_uri || null,
+  }));
+}
+
+// Append in place without spreading — spread overflows the call stack
+// on large exports (hundreds of thousands of plays).
+function pushAll(target, items) {
+  for (let i = 0; i < items.length; i++) target.push(items[i]);
+}
+
+async function loadRecordsFromFiles(files) {
+  const all = [];
+  const skipped = [];
+  for (const file of files) {
+    const name = file.name.toLowerCase();
+    let text;
+    try { text = await readFileAsText(file); }
+    catch (e) { skipped.push(file.name + ' (unreadable)'); continue; }
+
+    if (name.endsWith('.json')) {
+      let json;
+      try { json = JSON.parse(text); } catch (e) { skipped.push(file.name + ' (invalid JSON)'); continue; }
+      const recs = recordsFromSpotifyJSON(json);
+      // Only keep files that actually look like streaming history
+      if (recs.length && recs.some(r => r.ts)) pushAll(all, recs);
+      else skipped.push(file.name + ' (not streaming history)');
+    } else if (name.endsWith('.csv') || name.endsWith('.tsv')) {
+      const recs = recordsFromCSV(parseCSV(text));
+      if (recs.length && recs.some(r => r.ts)) pushAll(all, recs);
+      else skipped.push(file.name + ' (no recognizable columns)');
+    } else {
+      skipped.push(file.name + ' (unsupported type)');
+    }
+  }
+  return { records: all, skipped };
+}
+
+// ---------- clean + expand into full rows ----------
+function buildRows(records, excludedArtists) {
+  const excludeSet = new Set(excludedArtists.map(a => a.trim().toLowerCase()).filter(Boolean));
+
+  // music only
+  const music = records.filter(r => r.track && r.artist && r.ts);
+
+  // dedupe exact duplicates (Spotify export quirk)
+  const seen = new Set();
+  const deduped = [];
+  for (const r of music) {
+    const key = r.ts + '|' + (r.uri || r.track) + '|' + r.ms;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+  }
+  const dupesRemoved = music.length - deduped.length;
+
+  // artist exclusions
+  const kept = deduped.filter(r => !excludeSet.has(r.artist.trim().toLowerCase()));
+  const excludedCount = deduped.length - kept.length;
+
+  const rows = [];
+  for (const r of kept) {
+    const dt = new Date(r.ts);
+    if (isNaN(dt.getTime())) continue;
+    const y = dt.getUTCFullYear();
+    const mo = dt.getUTCMonth() + 1;
+    const day = dt.getUTCDate();
+    const iso = `${y}-${String(mo).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dowIdx = (dt.getUTCDay() + 6) % 7; // Monday = 0
+    rows.push({
+      date: iso,
+      year: y,
+      year_month: `${y}-${String(mo).padStart(2,'0')}`,
+      day_of_week: DOW_ORDER[dowIdx],
+      hour: dt.getUTCHours(),
+      track: r.track,
+      artist: r.artist,
+      album: r.album || '(unknown album)',
+      minutes: (r.ms || 0) / 60000,
+    });
+  }
+  rows.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return {
+    rows,
+    stats: {
+      rawRecords: records.length,
+      musicRecords: music.length,
+      dupesRemoved,
+      excludedCount,
+      finalRows: rows.length,
+    },
+  };
+}
+
+// ---------- helpers ----------
+function topN(rows, keyFn, n) {
+  const agg = new Map();
+  for (const r of rows) {
+    const k = keyFn(r);
+    if (!k) continue;
+    let e = agg.get(k);
+    if (!e) { e = { minutes: 0, plays: 0 }; agg.set(k, e); }
+    e.minutes += r.minutes;
+    e.plays += 1;
+  }
+  return [...agg.entries()].sort((a, b) => b[1].minutes - a[1].minutes).slice(0, n);
+}
+
+function fmtTopArtists(ranked) {
+  return ranked.map(([k, v]) => ({ artist: k, minutes: +v.minutes.toFixed(1), plays: v.plays }));
+}
+function fmtTopPairs(ranked, secondKey) {
+  return ranked.map(([k, v]) => {
+    const [artist, other] = k.split('\u0000');
+    const o = { artist, minutes: +v.minutes.toFixed(1), plays: v.plays };
+    o[secondKey] = other;
+    return o;
+  });
+}
+
+function dateAddDays(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+}
+function quantile(sortedVals, p) {
+  const n = sortedVals.length;
+  const k = (n - 1) * p;
+  const f = Math.floor(k), c = Math.min(f + 1, n - 1);
+  if (f === c) return sortedVals[f];
+  return sortedVals[f] + (sortedVals[c] - sortedVals[f]) * (k - f);
+}
+
+// ---------- main aggregation ----------
+function aggregateAll(rows, opts) {
+  const dayThreshold = opts.dayThreshold;
+
+  // ===== by-date totals =====
+  const byDate = new Map();
+  for (const r of rows) byDate.set(r.date, (byDate.get(r.date) || 0) + r.minutes);
+  const activeDates = [...byDate.keys()].sort();
+  const firstDate = activeDates[0], lastDate = activeDates[activeDates.length - 1];
+
+  // ===== HERO =====
+  const totalMinutes = rows.reduce((s, r) => s + r.minutes, 0);
+  const uniqueArtists = new Set(rows.map(r => r.artist)).size;
+  const uniqueTracks = new Set(rows.map(r => r.artist + '\u0000' + r.track)).size;
+
+  let longestStreak = 1, cur = 1;
+  for (let i = 1; i < activeDates.length; i++) {
+    if (daysBetween(activeDates[i - 1], activeDates[i]) === 1) cur++;
+    else cur = 1;
+    if (cur > longestStreak) longestStreak = cur;
+  }
+  let biggestDay = activeDates[0], biggestDayMin = 0;
+  for (const [d, m] of byDate) if (m > biggestDayMin) { biggestDayMin = m; biggestDay = d; }
+
+  const HERO = {
+    total_hours: +(totalMinutes / 60).toFixed(1),
+    unique_artists: uniqueArtists,
+    unique_tracks: uniqueTracks,
+    days_active: activeDates.length,
+    longest_streak_days: longestStreak,
+    biggest_day_date: biggestDay,
+    biggest_day_minutes: +biggestDayMin.toFixed(1),
+    first_date: firstDate,
+    last_date: lastDate,
+    total_plays: rows.length,
+  };
+
+  const totalHours = totalMinutes / 60;
+  const CONVERSIONS = {
+    total_days: +(totalHours / 24).toFixed(1),
+    total_movies: Math.round(totalMinutes / AVG_MOVIE_MIN),
+    total_semesters: +(totalHours / SEMESTER_HOURS).toFixed(1),
+  };
+
+  // ===== TOP LISTS =====
+  const years = [...new Set(rows.map(r => r.year))].sort();
+  function listsFor(subset) {
+    return {
+      artists: fmtTopArtists(topN(subset, r => r.artist, 15)),
+      tracks: fmtTopPairs(topN(subset, r => r.artist + '\u0000' + r.track, 15), 'track'),
+      albums: fmtTopPairs(topN(subset, r => r.artist + '\u0000' + r.album, 15), 'album'),
+    };
+  }
+  const TOP_LISTS = { all_time: listsFor(rows), by_year: {} };
+  for (const y of years) TOP_LISTS.by_year[String(y)] = listsFor(rows.filter(r => r.year === y));
+
+  // ===== TIMELINE (monthly) =====
+  const byMonth = new Map();
+  for (const r of rows) {
+    if (!byMonth.has(r.year_month)) byMonth.set(r.year_month, []);
+    byMonth.get(r.year_month).push(r);
+  }
+  const TIMELINE = [...byMonth.keys()].sort().map(ym => {
+    const mrows = byMonth.get(ym);
+    const tt = fmtTopPairs(topN(mrows, r => r.artist + '\u0000' + r.track, 1), 'track');
+    return {
+      ym,
+      total_minutes: +mrows.reduce((s, r) => s + r.minutes, 0).toFixed(1),
+      top_artists: fmtTopArtists(topN(mrows, r => r.artist, 5)),
+      top_track: tt.length ? tt[0] : null,
+    };
+  });
+
+  // ===== TOP ARTISTS OVER TIME (line chart) =====
+  const artistTotals = new Map();
+  for (const r of rows) artistTotals.set(r.artist, (artistTotals.get(r.artist) || 0) + r.minutes);
+  const top6 = [...artistTotals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
+  const STACKED = { artists: top6, years: years.map(String), data: {} };
+  for (const y of years) {
+    const entry = {};
+    for (const a of top6) entry[a] = 0;
+    let total = 0;
+    for (const r of rows) {
+      if (r.year !== y) continue;
+      total += r.minutes;
+      if (entry[r.artist] !== undefined) entry[r.artist] += r.minutes;
+    }
+    for (const a of top6) entry[a] = +entry[a].toFixed(1);
+    entry.total = +total.toFixed(1);
+    STACKED.data[String(y)] = entry;
+  }
+
+  // ===== DOW x HOUR =====
+  const matrix = {};
+  for (const d of DOW_ORDER) matrix[d] = new Array(24).fill(0);
+  for (const r of rows) matrix[r.day_of_week][r.hour] += r.minutes;
+  for (const d of DOW_ORDER) matrix[d] = matrix[d].map(v => +v.toFixed(1));
+  const DOW_HOUR = { order: DOW_ORDER, matrix };
+
+  // ===== SERIES (daily zero-filled, weekly, monthly) =====
+  const dailyVals = [];
+  const totalSpan = daysBetween(firstDate, lastDate);
+  for (let i = 0; i <= totalSpan; i++) {
+    const iso = dateAddDays(firstDate, i);
+    dailyVals.push({ date: iso, minutes: +(byDate.get(iso) || 0).toFixed(1) });
+  }
+  const win = 7;
+  dailyVals.forEach((row, i) => {
+    const lo = Math.max(0, i - win + 1);
+    const seg = dailyVals.slice(lo, i + 1);
+    row.avg7 = +(seg.reduce((s, x) => s + x.minutes, 0) / seg.length).toFixed(1);
+  });
+  const weeklyMap = new Map();
+  for (const row of dailyVals) {
+    const d = new Date(row.date + 'T00:00:00Z');
+    const dowIdx = (d.getUTCDay() + 6) % 7;
+    const weekStart = dateAddDays(row.date, -dowIdx);
+    weeklyMap.set(weekStart, (weeklyMap.get(weekStart) || 0) + row.minutes);
+  }
+  const monthlyMap = new Map();
+  for (const row of dailyVals) {
+    const ym = row.date.slice(0, 7);
+    monthlyMap.set(ym, (monthlyMap.get(ym) || 0) + row.minutes);
+  }
+  const SERIES = {
+    daily: dailyVals,
+    weekly: [...weeklyMap.entries()].sort().map(([d, m]) => ({ date: d, minutes: +m.toFixed(1) })),
+    monthly: [...monthlyMap.entries()].sort().map(([ym, m]) => ({ date: ym + '-01', minutes: +m.toFixed(1) })),
+  };
+
+  // ===== HISTOGRAM + BOXPLOT (threshold applied) =====
+  const allDaily = dailyVals.map(d => d.minutes);
+  const qualifying = allDaily.filter(v => v >= dayThreshold);
+  const binSize = 30, maxEdge = 600;
+  const bins = [];
+  for (let e = 0; e < maxEdge; e += binSize) bins.push({ lo: e, hi: e + binSize, count: 0 });
+  const overflow = { lo: maxEdge, hi: null, count: 0 };
+  for (const v of qualifying) {
+    if (v >= maxEdge) overflow.count++;
+    else bins[Math.floor(v / binSize)].count++;
+  }
+  bins.push(overflow);
+  const qSorted = [...qualifying].sort((a, b) => a - b);
+  const HISTOGRAM = {
+    bins,
+    mean: qualifying.length ? +(qualifying.reduce((s, v) => s + v, 0) / qualifying.length).toFixed(1) : 0,
+    median: qualifying.length ? +quantile(qSorted, 0.5).toFixed(1) : 0,
+    total_days: qualifying.length,
+    excluded_days: allDaily.length - qualifying.length,
+    threshold: dayThreshold,
+  };
+
+  const yearVals = new Map();
+  for (const row of dailyVals) {
+    if (row.minutes < dayThreshold) continue;
+    const y = row.date.slice(0, 4);
+    if (!yearVals.has(y)) yearVals.set(y, []);
+    yearVals.get(y).push(row.minutes);
+  }
+  const BOXPLOT = { threshold: dayThreshold, years: [] };
+  for (const y of [...yearVals.keys()].sort()) {
+    const v = yearVals.get(y).sort((a, b) => a - b);
+    if (!v.length) continue;
+    BOXPLOT.years.push({
+      year: y, n: v.length,
+      min: +v[0].toFixed(1),
+      q1: +quantile(v, 0.25).toFixed(1),
+      median: +quantile(v, 0.5).toFixed(1),
+      q3: +quantile(v, 0.75).toFixed(1),
+      max: +v[v.length - 1].toFixed(1),
+    });
+  }
+
+  // ===== SCATTER (artist retention) =====
+  const aFirst = new Map(), aLast = new Map(), aMin = new Map(), aPlays = new Map(), aMonth = new Map();
+  for (const r of rows) {
+    const a = r.artist;
+    if (!aFirst.has(a) || r.date < aFirst.get(a)) aFirst.set(a, r.date);
+    if (!aLast.has(a) || r.date > aLast.get(a)) aLast.set(a, r.date);
+    aMin.set(a, (aMin.get(a) || 0) + r.minutes);
+    aPlays.set(a, (aPlays.get(a) || 0) + 1);
+    if (!aMonth.has(a)) aMonth.set(a, new Map());
+    const mm = aMonth.get(a);
+    mm.set(r.year_month, (mm.get(r.year_month) || 0) + r.minutes);
+  }
+  const aPeak = new Map();
+  for (const [a, mm] of aMonth) aPeak.set(a, Math.max(...mm.values()));
+  const cutoff = dateAddDays(lastDate, -365);
+
+  const byTotal = [...aMin.entries()].sort((a, b) => b[1] - a[1]).slice(0, 35).map(e => e[0]);
+  const byPeak = [...aPeak.entries()].sort((a, b) => b[1] - a[1]).slice(0, 35).map(e => e[0]);
+  const fadedPool = [...aMin.entries()]
+    .filter(([a, m]) => aLast.get(a) < cutoff && m >= 50)
+    .sort((a, b) => b[1] - a[1]).slice(0, 20).map(e => e[0]);
+  const pool = [...new Set([...byTotal, ...byPeak, ...fadedPool])];
+
+  const SCATTER = {
+    cutoff_date: cutoff,
+    points: pool.map(a => ({
+      artist: a,
+      first_date: aFirst.get(a),
+      last_date: aLast.get(a),
+      minutes: +aMin.get(a).toFixed(1),
+      plays: aPlays.get(a),
+      active: aLast.get(a) >= cutoff,
+    })),
+  };
+
+  return { HERO, CONVERSIONS, TOP_LISTS, TIMELINE, STACKED, DOW_HOUR, SERIES, HISTOGRAM, BOXPLOT, SCATTER };
+}
+
+</script>
+<script>
+// ---------- helpers ----------
+function hexToRgb(hex) {
+  const v = hex.replace('#', '');
+  return [parseInt(v.slice(0,2),16), parseInt(v.slice(2,4),16), parseInt(v.slice(4,6),16)];
+}
+function mix(rgbA, rgbB, t) {
+  t = Math.max(0, Math.min(1, t));
+  const r = Math.round(rgbA[0] + (rgbB[0]-rgbA[0]) * t);
+  const g = Math.round(rgbA[1] + (rgbB[1]-rgbA[1]) * t);
+  const b = Math.round(rgbA[2] + (rgbB[2]-rgbA[2]) * t);
+  return `rgb(${r},${g},${b})`;
+}
+// Theme colors are read from CSS variables at render time so a custom
+// palette flows through to the canvas-style charts too, not just the CSS.
+let SURFACE_RGB = hexToRgb('1C1F26');
+let MAIN_RGB = hexToRgb('F0538A');
+let ACCENT_RGB = hexToRgb('C5E85A');
+
+function cssVar(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (d !== 0) {
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+  }
+  return [h * 360, s * 100, l * 100];
+}
+
+function refreshThemeColors() {
+  SURFACE_RGB = hexToRgb(cssVar('--surface', '#1C1F26'));
+  MAIN_RGB = hexToRgb(cssVar('--pink', '#F0538A'));
+  ACCENT_RGB = hexToRgb(cssVar('--accent', cssVar('--lime', '#C5E85A')));
+}
+
+// Artist/track/album names come from a data file, so they must be escaped
+// before going anywhere near innerHTML.
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function fmtMinutes(m) {
+  if (m >= 60) return (m/60).toFixed(1) + 'h';
+  return Math.round(m) + 'm';
+}
+function fmtMonthYear(ym) {
+  const [y, m] = ym.split('-');
+  const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return names[parseInt(m,10)-1] + ' ' + y;
+}
+function fmtMonthShort(ym) {
+  const [y, m] = ym.split('-');
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[parseInt(m,10)-1] + " '" + y.slice(2);
+}
+
+// ---------- HERO ----------
+// Small libraries would otherwise round down to a bare "0".
+function fmtHeroHours(h) {
+  if (h < 10) return (Math.round(h * 10) / 10).toLocaleString(undefined, { minimumFractionDigits: 1 });
+  return Math.round(h).toLocaleString();
+}
+
+function renderHero() {
+  document.getElementById('hero-label').textContent =
+    `Listening, ${fmtMonthShort(HERO.first_date.slice(0,7))} \u2013 ${fmtMonthShort(HERO.last_date.slice(0,7))}`;
+
+  const numEl = document.getElementById('hero-number');
+  const target = HERO.total_hours;
+  const duration = 900;
+  const start = performance.now();
+  function tick(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    numEl.textContent = fmtHeroHours(target * eased);
+    if (p < 1) requestAnimationFrame(tick);
+    else numEl.textContent = fmtHeroHours(target);
+  }
+  requestAnimationFrame(tick);
+
+  const lastDt = new Date(HERO.last_date + 'T00:00:00');
+  document.getElementById('footer-last-date').textContent =
+    lastDt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  document.getElementById('hero-sub').textContent =
+    `${HERO.total_plays.toLocaleString()} plays across ${HERO.unique_artists.toLocaleString()} artists`;
+
+  document.getElementById('hero-conversions').innerHTML =
+    `That's about <b>${CONVERSIONS.total_days.toLocaleString()} days</b> of nonstop listening &mdash; roughly ` +
+    `<b>${CONVERSIONS.total_movies.toLocaleString()} two-hour movies</b>, or <b>${CONVERSIONS.total_semesters}</b> ` +
+    `college semesters' worth of class time.`;
+
+  const bigDay = new Date(HERO.biggest_day_date + 'T00:00:00');
+  const bigDayLabel = bigDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const stats = [
+    { num: HERO.unique_artists.toLocaleString(), label: 'artists', wide: false },
+    { num: HERO.unique_tracks.toLocaleString(), label: 'tracks', wide: false },
+    { num: HERO.days_active.toLocaleString(), label: 'days with a play', wide: false },
+    { num: HERO.longest_streak_days.toLocaleString(), label: 'day longest streak', wide: false },
+    { num: fmtMinutes(HERO.biggest_day_minutes), label: `biggest day, ${bigDayLabel}`, wide: true },
+  ];
+  const row = document.getElementById('hero-stats-row');
+  row.innerHTML = stats.map(s => `
+    <div class="stat-block" ${s.wide ? 'style="max-width:180px"' : ''}>
+      <div class="stat-num">${s.num}</div>
+      <div class="stat-label" ${s.wide ? 'style="max-width:180px"' : ''}>${s.label}</div>
+    </div>
+  `).join('');
+}
+
+// ---------- TOP LISTS ----------
+let currentTopTab = 'all_time';
+
+function renderRankList(items, kind) {
+  if (!items || !items.length) return '<div class="rank-item"><span class="rank-sub">Nothing here yet</span></div>';
+  return items.slice(0, 10).map((it, i) => {
+    let name, sub;
+    if (kind === 'artist') { name = esc(it.artist); sub = `${it.plays} plays`; }
+    else if (kind === 'track') { name = esc(it.track); sub = esc(it.artist); }
+    else { name = esc(it.album); sub = esc(it.artist); }
+    return `
+      <div class="rank-item">
+        <div class="rank-num">${i+1}</div>
+        <div class="rank-main">
+          <div class="rank-name">${name}</div>
+          <div class="rank-sub">${sub}</div>
+        </div>
+        <div class="rank-minutes">${fmtMinutes(it.minutes)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTopLists() {
+  const data = currentTopTab === 'all_time' ? TOP_LISTS.all_time : TOP_LISTS.by_year[currentTopTab];
+  const grid = document.getElementById('toplist-grid');
+  grid.innerHTML = `
+    <div class="list-col"><h3>Artists</h3>${renderRankList(data.artists, 'artist')}</div>
+    <div class="list-col"><h3>Tracks</h3>${renderRankList(data.tracks, 'track')}</div>
+    <div class="list-col"><h3>Albums</h3>${renderRankList(data.albums, 'album')}</div>
+  `;
+}
+
+function renderTopTabs() {
+  const years = Object.keys(TOP_LISTS.by_year).sort();
+  const tabsEl = document.getElementById('toplist-tabs');
+  const options = [{ key: 'all_time', label: 'All time' }, ...years.map(y => ({ key: y, label: y }))];
+  tabsEl.innerHTML = options.map(o =>
+    `<button class="tab${o.key === currentTopTab ? ' active' : ''}" data-key="${o.key}">${o.label}</button>`
+  ).join('');
+  tabsEl.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTopTab = btn.dataset.key;
+      tabsEl.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+      renderTopLists();
+    });
+  });
+}
+
+// ---------- TIMELINE ----------
+function updateTimeline(idx) {
+  const m = TIMELINE[idx];
+  document.getElementById('timeline-month').textContent = fmtMonthYear(m.ym);
+  document.getElementById('timeline-total').textContent = `${fmtMinutes(m.total_minutes)} listened this month`;
+
+  const maxMinutes = m.top_artists.length ? m.top_artists[0].minutes : 1;
+  const barsEl = document.getElementById('artist-bars');
+  if (!m.top_artists.length) {
+    barsEl.innerHTML = '<div class="artist-bar-row"><span class="artist-bar-name"></span><span style="color:var(--text-muted); font-size:13.5px;">No plays this month</span></div>';
+  } else {
+    barsEl.innerHTML = m.top_artists.map(a => `
+      <div class="artist-bar-row">
+        <div class="artist-bar-name">${esc(a.artist)}</div>
+        <div class="artist-bar-track"><div class="artist-bar-fill" style="width:${(a.minutes/maxMinutes*100).toFixed(1)}%"></div></div>
+        <div class="artist-bar-minutes">${fmtMinutes(a.minutes)}</div>
+      </div>
+    `).join('');
+  }
+
+  const noteEl = document.getElementById('timeline-track-note');
+  if (m.top_track) {
+    noteEl.innerHTML = `Most played track: <b>${esc(m.top_track.track)}</b> \u2014 ${esc(m.top_track.artist)}`;
+  } else {
+    noteEl.innerHTML = '';
+  }
+}
+
+function renderTimeline() {
+  const slider = document.getElementById('timeline-slider');
+  slider.max = TIMELINE.length - 1;
+  slider.value = TIMELINE.length - 1;
+
+  const ticksEl = document.getElementById('year-ticks');
+  ticksEl.style.gridTemplateColumns = `repeat(${TIMELINE.length}, 1fr)`;
+  let lastYear = null;
+  let tickHtml = '';
+  TIMELINE.forEach((m, i) => {
+    const year = m.ym.slice(0, 4);
+    if (year !== lastYear) {
+      tickHtml += `<div class="year-tick" style="grid-column:${i+1}">${year}</div>`;
+      lastYear = year;
+    }
+  });
+  ticksEl.innerHTML = tickHtml;
+
+  slider.addEventListener('input', () => updateTimeline(parseInt(slider.value, 10)));
+  updateTimeline(TIMELINE.length - 1);
+}
+
+// ---------- STACKED BAR: TASTE COMPOSITION BY YEAR ----------
+const STACKED_COLORS = {};
+function assignStackedColors() {
+  // First two lines use the chosen main + accent; the rest are generated by
+  // rotating hue off the main color so any theme yields a coherent set.
+  const [h, s, l] = rgbToHsl(MAIN_RGB[0], MAIN_RGB[1], MAIN_RGB[2]);
+  const accentH = rgbToHsl(ACCENT_RGB[0], ACCENT_RGB[1], ACCENT_RGB[2])[0];
+  const sat = Math.max(45, Math.min(80, s));
+  const light = Math.max(52, Math.min(72, l));
+
+  // Keep generated hues clear of both the main and accent hues, otherwise two
+  // lines can end up near-identical (e.g. a blue accent + a generated blue).
+  const hueGap = (a, b) => { const d = Math.abs(((a - b) % 360 + 360) % 360); return Math.min(d, 360 - d); };
+  const candidates = [200, 145, 265, 60, 100, 320, 30, 240];
+  const picked = [];
+  for (const off of candidates) {
+    if (picked.length === 4) break;
+    const ch = (h + off) % 360;
+    if (hueGap(ch, accentH) < 40) continue;
+    if (hueGap(ch, h) < 30) continue;
+    if (picked.some(p => hueGap(ch, p) < 35)) continue;
+    picked.push(ch);
+  }
+  // Fall back to even spacing if the constraints were too tight to fill four.
+  while (picked.length < 4) picked.push((h + 90 * (picked.length + 1)) % 360);
+
+  const palette = ['var(--pink)', 'var(--lime)']
+    .concat(picked.map(ch => `hsl(${ch.toFixed(0)}, ${sat}%, ${light}%)`));
+  STACKED.artists.forEach((a, i) => { STACKED_COLORS[a] = palette[i % palette.length]; });
+}
+
+function renderStackedLegend() {
+  document.getElementById('stacked-legend').innerHTML = STACKED.artists.map(a =>
+    `<span><i style="background:${STACKED_COLORS[a]}"></i>${esc(a)}</span>`
+  ).join('');
+}
+
+function renderArtistLines() {
+  const svg = document.getElementById('stacked-svg');
+  const years = STACKED.years;
+  const artists = STACKED.artists;
+  const W = 1000, H = 300, padTop = 16, padBottom = 30, padLeft = 10, padRight = 10;
+  const innerW = W - padLeft - padRight, innerH = H - padTop - padBottom;
+
+  const maxVal = Math.max(...years.map(y => Math.max(...artists.map(a => STACKED.data[y][a])))) || 1;
+  // Guard against a single data point (years.length === 1 would divide by zero)
+  const xFor = i => years.length === 1 ? padLeft + innerW / 2 : padLeft + (i / (years.length - 1)) * innerW;
+  const yFor = v => padTop + innerH - (v / maxVal) * innerH;
+
+  let html = '';
+  // gridlines
+  for (let g = 0; g <= 3; g++) {
+    const y = padTop + (innerH / 3) * g;
+    html += `<line x1="${padLeft}" y1="${y}" x2="${padLeft + innerW}" y2="${y}" stroke="var(--border)" stroke-width="1" />`;
+  }
+  // year labels
+  years.forEach((y, i) => {
+    html += `<text x="${xFor(i)}" y="${padTop + innerH + 20}" fill="var(--text-muted)" font-size="12" text-anchor="middle" font-family="Inter">${y}</text>`;
+  });
+
+  artists.forEach(a => {
+    const color = STACKED_COLORS[a];
+    const pathPts = years.map((y, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i).toFixed(1)} ${yFor(STACKED.data[y][a]).toFixed(1)}`).join(' ');
+    html += `<path d="${pathPts}" fill="none" stroke="${color}" stroke-width="2" />`;
+    years.forEach((y, i) => {
+      html += `<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(STACKED.data[y][a]).toFixed(1)}" r="3.5" fill="${color}" />`;
+    });
+  });
+
+  // invisible overlay for scrubbing across years
+  html += `<rect id="stacked-overlay" x="${padLeft}" y="0" width="${innerW}" height="${H}" fill="transparent" style="cursor:pointer" />`;
+
+  svg.innerHTML = html;
+
+  const overlay = svg.querySelector('#stacked-overlay');
+  const tooltip = document.getElementById('stacked-tooltip');
+
+  function handleMove(evt) {
+    const rect = svg.getBoundingClientRect();
+    const relX = (evt.clientX - rect.left - (padLeft / W) * rect.width) / (innerW / W * rect.width);
+    const idx = Math.max(0, Math.min(years.length - 1, Math.round(relX * (years.length - 1))));
+    const y = years[idx];
+    const entry = STACKED.data[y];
+    const sorted = [...artists].sort((a, b) => entry[b] - entry[a]);
+
+    tooltip.style.left = `${(xFor(idx) / W) * 100}%`;
+    tooltip.style.top = `${(padTop / H) * 100}%`;
+    tooltip.style.opacity = 1;
+    tooltip.innerHTML = `<div class="tt-year">${y}</div>` + sorted.map(a =>
+      `<div class="tt-row"><i style="background:${STACKED_COLORS[a]}"></i><span>${esc(a)}</span>${fmtMinutes(entry[a])}</div>`
+    ).join('');
+  }
+  overlay.addEventListener('mousemove', handleMove);
+  overlay.addEventListener('mouseleave', () => { tooltip.style.opacity = 0; });
+}
+
+// ---------- DISTRIBUTION: HISTOGRAM + BOX PLOT ----------
+function renderHistogram() {
+  const svg = document.getElementById('hist-svg');
+  const bins = HISTOGRAM.bins;
+  const maxCount = Math.max(...bins.map(b => b.count));
+  const W = 1000, H = 260, padTop = 16, padBottom = 40, padLeft = 6, padRight = 6;
+  const innerH = H - padTop - padBottom;
+  const n = bins.length;
+  const gap = 3;
+  const barW = (W - padLeft - padRight - gap * (n - 1)) / n;
+
+  let html = '';
+  bins.forEach((b, i) => {
+    const h = maxCount ? (b.count / maxCount) * innerH : 0;
+    const x = padLeft + i * (barW + gap);
+    const y = padTop + innerH - h;
+    const label = b.hi ? `${b.lo}-${b.hi} min` : `${b.lo}+ min`;
+    html += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="var(--pink)" opacity="0.85" rx="1"><title>${label}: ${b.count} days</title></rect>`;
+  });
+
+  // mean & median reference lines
+  function binIndexForValue(v) {
+    return Math.min(n - 1, Math.floor(v / 30));
+  }
+  function xForBinValue(v) {
+    const idx = binIndexForValue(v);
+    const fracInBin = Math.min(1, (v - idx * 30) / 30);
+    return padLeft + idx * (barW + gap) + fracInBin * barW;
+  }
+  const meanX = xForBinValue(HISTOGRAM.mean);
+  const medianX = xForBinValue(HISTOGRAM.median);
+  html += `<line x1="${medianX}" y1="${padTop}" x2="${medianX}" y2="${padTop + innerH}" stroke="var(--lime)" stroke-width="2" />`;
+  html += `<text x="${medianX}" y="${padTop - 4}" fill="var(--lime)" font-size="12" text-anchor="middle" font-family="Inter">median ${HISTOGRAM.median}m</text>`;
+  html += `<line x1="${meanX}" y1="${padTop}" x2="${meanX}" y2="${padTop + innerH}" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="4,3" />`;
+  html += `<text x="${meanX}" y="${padTop + innerH + 16}" fill="var(--text-muted)" font-size="12" text-anchor="middle" font-family="Inter">mean ${HISTOGRAM.mean}m</text>`;
+
+  svg.innerHTML = html;
+
+  const gapNote = Math.abs(HISTOGRAM.mean - HISTOGRAM.median) < HISTOGRAM.median * 0.2
+    ? ' \u2014 close together, so the average day is a fair summary'
+    : ' \u2014 the gap means a few long days are pulling the average up';
+  const thresholdNote = HISTOGRAM.threshold > 0
+    ? `Days under ${HISTOGRAM.threshold} minutes are treated as accidental opens rather than real sessions and left out \u2014 that's ${HISTOGRAM.excluded_days.toLocaleString()} days. `
+    : '';
+  document.getElementById('hist-caption').innerHTML =
+    thresholdNote +
+    `Across ${HISTOGRAM.total_days.toLocaleString()} counted days, the median is ${HISTOGRAM.median} minutes and the mean is ${HISTOGRAM.mean}${gapNote}.`;
+}
+
+function renderBoxplot() {
+  const svg = document.getElementById('box-svg');
+  const years = BOXPLOT.years;
+  const globalMax = Math.max(...years.map(y => y.max));
+  const W = 1000, H = 260, padTop = 16, padBottom = 30, padLeft = 30, padRight = 10;
+  const innerH = H - padTop - padBottom;
+  const innerW = W - padLeft - padRight;
+  const n = years.length;
+  const colW = innerW / n;
+
+  function yFor(v) { return padTop + innerH - (v / globalMax) * innerH; }
+
+  let html = `<line x1="${padLeft}" y1="${padTop + innerH}" x2="${padLeft + innerW}" y2="${padTop + innerH}" stroke="var(--border)" stroke-width="1" />`;
+
+  years.forEach((y, i) => {
+    const cx = padLeft + colW * i + colW / 2;
+    const boxW = Math.min(40, colW * 0.5);
+    const yMin = yFor(y.min), yMax = yFor(y.max), yQ1 = yFor(y.q1), yQ3 = yFor(y.q3), yMed = yFor(y.median);
+    html += `<line x1="${cx}" y1="${yMax}" x2="${cx}" y2="${yMin}" stroke="var(--text-muted)" stroke-width="1.5" />`;
+    html += `<line x1="${cx - boxW/2}" y1="${yMax}" x2="${cx + boxW/2}" y2="${yMax}" stroke="var(--text-muted)" stroke-width="1.5" />`;
+    html += `<line x1="${cx - boxW/2}" y1="${yMin}" x2="${cx + boxW/2}" y2="${yMin}" stroke="var(--text-muted)" stroke-width="1.5" />`;
+    html += `<rect x="${(cx - boxW/2).toFixed(1)}" y="${yQ3.toFixed(1)}" width="${boxW}" height="${(yQ1 - yQ3).toFixed(1)}" fill="var(--pink)" opacity="0.35" stroke="var(--pink)" stroke-width="1.5" />`;
+    html += `<line x1="${cx - boxW/2}" y1="${yMed}" x2="${cx + boxW/2}" y2="${yMed}" stroke="var(--pink)" stroke-width="2" />`;
+    html += `<text x="${cx}" y="${padTop + innerH + 20}" fill="var(--text-muted)" font-size="12" text-anchor="middle" font-family="Inter">${y.year}</text>`;
+    html += `<title>${y.year}: median ${y.median}m, range ${y.min}-${y.max}m</title>`;
+  });
+
+  svg.innerHTML = html;
+}
+
+// ---------- ARTIST RETENTION SCATTER ----------
+function renderScatter() {
+  const svg = document.getElementById('scatter-svg');
+  const points = SCATTER.points;
+  const W = 1000, H = 420, padTop = 20, padBottom = 40, padLeft = 40, padRight = 20;
+  const innerW = W - padLeft - padRight, innerH = H - padTop - padBottom;
+
+  const firstDates = points.map(p => new Date(p.first_date).getTime());
+  const minT = Math.min(...firstDates), maxT = Math.max(...firstDates);
+  const maxMinutesSqrt = Math.sqrt(Math.max(...points.map(p => p.minutes)));
+  const maxPlaysSqrt = Math.sqrt(Math.max(...points.map(p => p.plays)));
+
+  // Guard against all artists sharing one first-listen date (maxT === minT)
+  function xFor(t) { return maxT === minT ? padLeft + innerW / 2 : padLeft + ((t - minT) / (maxT - minT)) * innerW; }
+  function yFor(minutes) { return padTop + innerH - (Math.sqrt(minutes) / maxMinutesSqrt) * innerH; }
+  function rFor(plays) { return 3 + (Math.sqrt(plays) / maxPlaysSqrt) * 15; }
+
+  let html = '';
+  // gridlines + year labels on x-axis
+  const startYear = new Date(minT).getFullYear(), endYear = new Date(maxT).getFullYear();
+  for (let yr = startYear; yr <= endYear; yr++) {
+    const t = new Date(`${yr}-01-01`).getTime();
+    if (t < minT || t > maxT) continue;
+    const x = xFor(t);
+    html += `<line x1="${x}" y1="${padTop}" x2="${x}" y2="${padTop + innerH}" stroke="var(--border)" stroke-width="1" />`;
+    html += `<text x="${x}" y="${padTop + innerH + 20}" fill="var(--text-muted)" font-size="12" text-anchor="middle" font-family="Inter">${yr}</text>`;
+  }
+
+  points.forEach(p => {
+    const x = xFor(new Date(p.first_date).getTime());
+    const y = yFor(p.minutes);
+    const r = rFor(p.plays);
+    const color = p.active ? 'var(--pink)' : 'var(--text-muted)';
+    html += `<circle class="scatter-pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${color}" opacity="0.75" stroke="var(--bg)" stroke-width="1"
+      data-artist="${esc(p.artist)}" data-first="${esc(p.first_date)}" data-minutes="${p.minutes}" data-plays="${p.plays}" style="cursor:pointer" />`;
+  });
+
+  svg.innerHTML = html;
+
+  const tooltip = document.getElementById('scatter-tooltip');
+  svg.querySelectorAll('.scatter-pt').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      const rect = svg.getBoundingClientRect();
+      const cx = parseFloat(el.getAttribute('cx')), cy = parseFloat(el.getAttribute('cy'));
+      tooltip.style.left = `${(cx / W) * 100}%`;
+      tooltip.style.top = `${(cy / H) * 100}%`;
+      tooltip.style.opacity = 1;
+      tooltip.innerHTML = `
+        <div class="tt-date">${esc(el.dataset.first)}</div>
+        <div class="tt-val">${esc(el.dataset.artist)}</div>
+        <div class="tt-date">${fmtMinutes(parseFloat(el.dataset.minutes))} &middot; ${el.dataset.plays} plays</div>
+      `;
+      el.setAttribute('stroke', 'var(--lime)');
+      el.setAttribute('stroke-width', '2');
+    });
+    el.addEventListener('mouseleave', () => {
+      tooltip.style.opacity = 0;
+      el.setAttribute('stroke', 'var(--bg)');
+      el.setAttribute('stroke-width', '1');
+    });
+  });
+}
+
+// ---------- DAY x HOUR PATTERN ----------
+function renderDowHour() {
+  const order = DOW_HOUR.order;
+  const matrix = DOW_HOUR.matrix;
+  let max = 0;
+  order.forEach(d => matrix[d].forEach(v => { if (v > max) max = v; }));
+
+  const hourLabelsEl = document.getElementById('hour-labels');
+  const hourMarks = { 0: '12a', 6: '6a', 12: '12p', 18: '6p' };
+  let hourHtml = '<div></div>';
+  for (let h = 0; h < 24; h++) hourHtml += `<div>${hourMarks[h] || ''}</div>`;
+  hourLabelsEl.innerHTML = hourHtml;
+
+  const gridEl = document.getElementById('dowhour-grid');
+  let html = '';
+  order.forEach(day => {
+    html += `<div class="dow-label">${day.slice(0,3)}</div>`;
+    matrix[day].forEach((v, h) => {
+      const t = max ? v / max : 0;
+      const color = mix(SURFACE_RGB, MAIN_RGB, t);
+      html += `<div class="dowhour-cell" style="background:${color}" title="${day} ${h}:00 \u2014 ${fmtMinutes(v)}"></div>`;
+    });
+  });
+  gridEl.innerHTML = html;
+}
+
+// ---------- LISTENING OVER TIME (stock-style line chart) ----------
+let currentGranularity = 'monthly';
+const VB_W = 1000, VB_H = 280, PAD_TOP = 16, PAD_BOTTOM = 24;
+
+function fmtSeriesDate(dateStr, granularity) {
+  const dt = new Date(dateStr + 'T00:00:00');
+  if (granularity === 'monthly') return dt.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function buildPath(points, xFn, yFn) {
+  return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFn(i).toFixed(2)} ${yFn(p).toFixed(2)}`).join(' ');
+}
+
+function renderSeriesChart() {
+  const data = SERIES[currentGranularity];
+  const svg = document.getElementById('series-svg');
+  const useAvg = currentGranularity === 'daily';
+  const valueKey = useAvg ? 'avg7' : 'minutes';
+
+  const max = Math.max(...data.map(d => d[valueKey])) * 1.1 || 1;
+  const innerH = VB_H - PAD_TOP - PAD_BOTTOM;
+  // Guard against a single data point (data.length === 1 would divide by zero)
+  const xFn = i => data.length === 1 ? VB_W / 2 : (i / (data.length - 1)) * VB_W;
+  const yFn = d => PAD_TOP + innerH - (d[valueKey] / max) * innerH;
+  const yFnRaw = d => PAD_TOP + innerH - (d.minutes / max) * innerH;
+
+  let svgContent = `
+    <defs>
+      <linearGradient id="seriesFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--pink)" stop-opacity="0.35" />
+        <stop offset="100%" stop-color="var(--pink)" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+  `;
+
+  // faint gridlines
+  for (let g = 0; g <= 3; g++) {
+    const y = PAD_TOP + (innerH / 3) * g;
+    svgContent += `<line x1="0" y1="${y}" x2="${VB_W}" y2="${y}" stroke="var(--border)" stroke-width="1" />`;
+  }
+
+  if (useAvg) {
+    const rawPath = buildPath(data, xFn, yFnRaw);
+    svgContent += `<path d="${rawPath}" fill="none" stroke="var(--lime)" stroke-width="1" opacity="0.4" />`;
+  }
+
+  const mainPath = buildPath(data, xFn, yFn);
+  const areaPath = `${mainPath} L ${VB_W} ${VB_H - PAD_BOTTOM} L 0 ${VB_H - PAD_BOTTOM} Z`;
+  svgContent += `<path d="${areaPath}" fill="url(#seriesFill)" />`;
+  svgContent += `<path d="${mainPath}" fill="none" stroke="var(--pink)" stroke-width="1.75" />`;
+  svgContent += `<circle id="series-dot" cx="0" cy="0" r="4.5" fill="var(--lime)" opacity="0" />`;
+  svgContent += `<line id="series-guide" x1="0" y1="${PAD_TOP}" x2="0" y2="${VB_H - PAD_BOTTOM}" stroke="var(--lime)" stroke-width="1" opacity="0" />`;
+
+  svg.innerHTML = svgContent;
+
+  const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  overlay.setAttribute('x', 0); overlay.setAttribute('y', 0);
+  overlay.setAttribute('width', VB_W); overlay.setAttribute('height', VB_H);
+  overlay.setAttribute('fill', 'transparent');
+  svg.appendChild(overlay);
+
+  const tooltip = document.getElementById('series-tooltip');
+  const dot = document.getElementById('series-dot');
+  const guide = document.getElementById('series-guide');
+  const wrap = document.getElementById('series' + '-chart-wrap') || svg.closest('.series-chart-wrap');
+
+  function handleMove(evt) {
+    const rect = svg.getBoundingClientRect();
+    const relX = (evt.clientX - rect.left) / rect.width;
+    const idx = Math.max(0, Math.min(data.length - 1, Math.round(relX * (data.length - 1))));
+    const point = data[idx];
+    const px = xFn(idx), py = yFn(point);
+
+    dot.setAttribute('cx', px); dot.setAttribute('cy', py); dot.setAttribute('opacity', 1);
+    guide.setAttribute('x1', px); guide.setAttribute('x2', px); guide.setAttribute('opacity', 1);
+
+    tooltip.style.left = `${(px / VB_W) * 100}%`;
+    tooltip.style.top = `${(py / VB_H) * 100}%`;
+    tooltip.style.opacity = 1;
+    tooltip.innerHTML = `
+      <div class="tt-date">${fmtSeriesDate(point.date, currentGranularity)}</div>
+      <div class="tt-val">${fmtMinutes(point[valueKey])}</div>
+    `;
+  }
+  function handleLeave() {
+    dot.setAttribute('opacity', 0);
+    guide.setAttribute('opacity', 0);
+    tooltip.style.opacity = 0;
+  }
+  overlay.addEventListener('mousemove', handleMove);
+  overlay.addEventListener('mouseleave', handleLeave);
+  overlay.addEventListener('touchmove', e => { handleMove(e.touches[0]); e.preventDefault(); }, { passive: false });
+  overlay.addEventListener('touchend', handleLeave);
+
+  const unitNoun = { daily: 'day', weekly: 'week', monthly: 'month' }[currentGranularity];
+  const total = data.reduce((s, d) => s + d.minutes, 0);
+  const peak = data.reduce((best, d) => d.minutes > best.minutes ? d : best, data[0]);
+  document.getElementById('series-caption').textContent =
+    `${fmtMinutes(total)} total across this view \u2014 busiest ${unitNoun} was ${fmtSeriesDate(peak.date, currentGranularity)} at ${fmtMinutes(peak.minutes)}.`;
+}
+
+function renderSeriesSub() {
+  const el = document.getElementById('series-sub');
+  if (!el) return;
+  const startYear = HERO.first_date.slice(0, 4);
+  el.textContent = `Every day since ${startYear}, zoomed in or out.`;
+}
+
+function renderSeriesTabs() {
+  const options = [
+    { key: 'daily', label: 'Daily' },
+    { key: 'weekly', label: 'Weekly' },
+    { key: 'monthly', label: 'Monthly' },
+  ];
+  const tabsEl = document.getElementById('series-tabs');
+  tabsEl.innerHTML = options.map(o =>
+    `<button class="tab${o.key === currentGranularity ? ' active' : ''}" data-key="${o.key}">${o.label}</button>`
+  ).join('');
+  tabsEl.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentGranularity = btn.dataset.key;
+      tabsEl.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+      renderSeriesChart();
+    });
+  });
+}
+
+// ---------- RENDER ENTRYPOINT ----------
+function renderAll() {
+  refreshThemeColors();
+  renderHero();
+  renderTopTabs();
+  renderTopLists();
+  renderTimeline();
+  assignStackedColors();
+  renderStackedLegend();
+  renderArtistLines();
+  renderHistogram();
+  renderBoxplot();
+  renderScatter();
+  renderDowHour();
+  renderSeriesSub();
+  renderSeriesTabs();
+  renderSeriesChart();
+}
+
+</script>
+<script>
+
+// ============================================================
+// Controller: setup screen -> aggregate -> render
+// ============================================================
+var HERO, CONVERSIONS, TOP_LISTS, TIMELINE, STACKED, DOW_HOUR, SERIES, HISTOGRAM, BOXPLOT, SCATTER;
+
+// Snapshot of this page before any data is injected, so "save standalone" works.
+var PRISTINE_HTML = document.documentElement.outerHTML;
+
+var pickedFiles = [];
+var dayThreshold = 10;
+
+// ---------- theme ----------
+function hx(h) {
+  h = h.replace('#', '');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function toHex(rgb) {
+  return '#' + rgb.map(function (v) {
+    return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  }).join('');
+}
+function relLuminance(rgb) {
+  var a = rgb.map(function (v) {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+function blend(a, b, t) {
+  return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+}
+
+// Derive the supporting greys from whatever background was chosen, so the
+// theme works on light and dark alike.
+function applyTheme(main, accent, bg) {
+  var bgRgb = hx(bg);
+  var isLight = relLuminance(bgRgb) > 0.45;
+  var toward = isLight ? [0, 0, 0] : [255, 255, 255];
+
+  var r = document.documentElement.style;
+  r.setProperty('--bg', bg);
+  r.setProperty('--surface',   toHex(blend(bgRgb, toward, isLight ? 0.04 : 0.05)));
+  r.setProperty('--surface-2', toHex(blend(bgRgb, toward, isLight ? 0.08 : 0.09)));
+  r.setProperty('--border',    toHex(blend(bgRgb, toward, isLight ? 0.18 : 0.20)));
+  r.setProperty('--text',      toHex(blend(bgRgb, toward, isLight ? 0.88 : 0.92)));
+  r.setProperty('--text-muted',toHex(blend(bgRgb, toward, isLight ? 0.48 : 0.50)));
+  r.setProperty('--pink', main);
+  r.setProperty('--lime', accent);
+  r.setProperty('--accent', accent);
+
+  // The primary button sits on the main color, so its label must contrast with it.
+  r.setProperty('--on-main', relLuminance(hx(main)) > 0.5 ? '#14161B' : '#FFFFFF');
+}
+
+function currentTheme() {
+  return {
+    main: document.getElementById('color-main').value,
+    accent: document.getElementById('color-accent').value,
+    bg: document.getElementById('color-bg').value
+  };
+}
+function syncTheme() {
+  var t = currentTheme();
+  applyTheme(t.main, t.accent, t.bg);
+}
+
+var setupEl = document.getElementById('setup');
+var dashEl = document.getElementById('dashboard');
+var dropEl = document.getElementById('drop');
+var fileInput = document.getElementById('file-input');
+var summaryEl = document.getElementById('file-summary');
+var statusEl = document.getElementById('setup-status');
+var buildBtn = document.getElementById('build-btn');
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg || '';
+  statusEl.className = 'setup-status' + (isError ? ' setup-error' : '');
+}
+
+function describeFiles(files) {
+  var hist = files.filter(function (f) { return /streaming_history_audio/i.test(f.name); });
+  var csvs = files.filter(function (f) { return /\.csv$/i.test(f.name); });
+  var other = files.length - hist.length - csvs.length;
+  var bits = [];
+  if (hist.length) bits.push(hist.length + ' streaming-history file' + (hist.length > 1 ? 's' : ''));
+  if (csvs.length) bits.push(csvs.length + ' CSV file' + (csvs.length > 1 ? 's' : ''));
+  if (!bits.length) return { text: 'No streaming-history or CSV files found in that selection.', warn: true };
+  var text = bits.join(' + ') + ' ready';
+  if (other > 0) text += ' \u00b7 ' + other + ' other file' + (other > 1 ? 's' : '') + ' will be ignored';
+  return { text: text, warn: false };
+}
+
+function onFilesPicked(fileList) {
+  pickedFiles = Array.prototype.slice.call(fileList);
+  var d = describeFiles(pickedFiles);
+  summaryEl.textContent = d.text;
+  summaryEl.className = 'file-summary' + (d.warn ? ' warn' : '');
+  var usable = pickedFiles.filter(function (f) { return /\.(json|csv)$/i.test(f.name); });
+  buildBtn.disabled = usable.length === 0;
+  setStatus('');
+}
+
+dropEl.addEventListener('click', function () { fileInput.click(); });
+fileInput.addEventListener('change', function (e) { onFilesPicked(e.target.files); });
+['dragenter', 'dragover'].forEach(function (ev) {
+  dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.add('over'); });
+});
+['dragleave', 'drop'].forEach(function (ev) {
+  dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.remove('over'); });
+});
+dropEl.addEventListener('drop', function (e) {
+  if (e.dataTransfer && e.dataTransfer.files) onFilesPicked(e.dataTransfer.files);
+});
+
+// preset buttons + live color inputs
+document.getElementById('preset-seg').addEventListener('click', function (e) {
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.getElementById('color-main').value = btn.dataset.m;
+  document.getElementById('color-accent').value = btn.dataset.a;
+  document.getElementById('color-bg').value = btn.dataset.b;
+  this.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b === btn); });
+  syncTheme();
+});
+['color-main', 'color-accent', 'color-bg'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', function () {
+    // a manual tweak means it's no longer one of the presets
+    document.querySelectorAll('#preset-seg .tab').forEach(function (b) { b.classList.remove('active'); });
+    syncTheme();
+  });
+});
+syncTheme();
+
+document.getElementById('threshold-seg').addEventListener('click', function (e) {
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  dayThreshold = parseFloat(btn.dataset.v);
+  this.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b === btn); });
+});
+
+function showDashboard(data, meta) {
+  HERO = data.HERO; CONVERSIONS = data.CONVERSIONS; TOP_LISTS = data.TOP_LISTS;
+  TIMELINE = data.TIMELINE; STACKED = data.STACKED; DOW_HOUR = data.DOW_HOUR;
+  SERIES = data.SERIES; HISTOGRAM = data.HISTOGRAM; BOXPLOT = data.BOXPLOT; SCATTER = data.SCATTER;
+
+  setupEl.classList.add('hidden');
+  dashEl.classList.remove('hidden');
+  renderAll();
+
+  var note = document.getElementById('build-note');
+  if (note && meta) {
+    note.textContent = meta.finalRows.toLocaleString() + ' plays charted'
+      + (meta.dupesRemoved ? ' \u00b7 ' + meta.dupesRemoved.toLocaleString() + ' duplicate rows dropped' : '')
+      + (meta.excludedCount ? ' \u00b7 ' + meta.excludedCount.toLocaleString() + ' excluded by artist' : '');
+  }
+  window.scrollTo(0, 0);
+}
+
+buildBtn.addEventListener('click', async function () {
+  buildBtn.disabled = true;
+  setStatus('Reading files\u2026');
+  try {
+    var loaded = await loadRecordsFromFiles(pickedFiles);
+    if (!loaded.records.length) {
+      setStatus('No playback records found. Make sure you picked the Streaming_History_Audio JSON files from your export.', true);
+      buildBtn.disabled = false;
+      return;
+    }
+    setStatus('Cleaning ' + loaded.records.length.toLocaleString() + ' records\u2026');
+    var excluded = document.getElementById('exclude-input').value.split(',');
+    var built = buildRows(loaded.records, excluded);
+    if (!built.rows.length) {
+      setStatus('Those files parsed, but every row was filtered out. Check your exclusion list.', true);
+      buildBtn.disabled = false;
+      return;
+    }
+    setStatus('Crunching statistics\u2026');
+    // yield so the status paints before the heavy synchronous work
+    await new Promise(function (r) { setTimeout(r, 30); });
+    var data = aggregateAll(built.rows, { dayThreshold: dayThreshold });
+    showDashboard(data, built.stats);
+  } catch (err) {
+    console.error(err);
+    setStatus('Something went wrong: ' + err.message, true);
+    buildBtn.disabled = false;
+  }
+});
+
+// ---------- restart ----------
+document.addEventListener('click', function (e) {
+  if (e.target && e.target.id === 'restart-btn') {
+    dashEl.classList.add('hidden');
+    setupEl.classList.remove('hidden');
+    buildBtn.disabled = pickedFiles.length === 0;
+    setStatus('');
+    window.scrollTo(0, 0);
+  }
+});
+
+// ---------- save standalone ----------
+document.addEventListener('click', function (e) {
+  if (!e.target || e.target.id !== 'save-btn') return;
+  var baked = {
+    HERO: HERO, CONVERSIONS: CONVERSIONS, TOP_LISTS: TOP_LISTS, TIMELINE: TIMELINE,
+    STACKED: STACKED, DOW_HOUR: DOW_HOUR, SERIES: SERIES, HISTOGRAM: HISTOGRAM,
+    BOXPLOT: BOXPLOT, SCATTER: SCATTER,
+    // Persist the chosen colors; PRISTINE_HTML was captured before the theme
+    // was applied, so the saved file has to re-apply it on load.
+    THEME: currentTheme(),
+    builtOn: new Date().toISOString().slice(0, 10)
+  };
+  // Escape '<' so an artist/track name can never terminate the script tag.
+  var json = JSON.stringify(baked).replace(/</g, '\\u003c');
+  var inject = '<script>window.__BAKED__ = ' + json + ';<\/script>\n';
+  // Splice at the LAST closing body tag. This source contains that tag as a
+  // string literal, so a plain replace would inject inside this script block.
+  var closeTag = '<\/body>';
+  var at = PRISTINE_HTML.lastIndexOf(closeTag);
+  var out = at === -1
+    ? PRISTINE_HTML + inject
+    : PRISTINE_HTML.slice(0, at) + inject + PRISTINE_HTML.slice(at);
+  if (!/^<!DOCTYPE/i.test(out)) out = '<!DOCTYPE html>\n' + out;
+  var blob = new Blob([out], { type: 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'listening-dashboard.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+});
+
+// ---------- baked mode: skip setup entirely ----------
+// The baked data script is injected *after* this one, so wait for parsing
+// to finish before checking for it.
+function bootBakedIfPresent() {
+  if (!window.__BAKED__) return;
+  var b = window.__BAKED__;
+  if (b.THEME) applyTheme(b.THEME.main, b.THEME.accent, b.THEME.bg);
+  setupEl.classList.add('hidden');
+  dashEl.classList.remove('hidden');
+  var tb = document.getElementById('dash-toolbar');
+  if (tb) tb.classList.add('hidden');
+  HERO = b.HERO; CONVERSIONS = b.CONVERSIONS; TOP_LISTS = b.TOP_LISTS; TIMELINE = b.TIMELINE;
+  STACKED = b.STACKED; DOW_HOUR = b.DOW_HOUR; SERIES = b.SERIES;
+  HISTOGRAM = b.HISTOGRAM; BOXPLOT = b.BOXPLOT; SCATTER = b.SCATTER;
+  renderAll();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootBakedIfPresent);
+} else {
+  bootBakedIfPresent();
+}
+
+</script>
+</body>
+</html>
