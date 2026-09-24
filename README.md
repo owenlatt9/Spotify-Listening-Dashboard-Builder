@@ -2,7 +2,7 @@
 
 Turn your Spotify streaming history into an interactive, personal dashboard — top artists, how your taste shifted year to year, when you actually listen, and which artists stuck around the longest.
 
-**[Try it live →](#)** *(add your GitHub Pages link here once it's deployed)*
+**[Try it live →](#)** https://owenlatt9.github.io/Spotify-Listening-Dashboard-Builder/
 
 Everything runs entirely in your browser. No server, no account, no analytics — your listening history never leaves your computer.
 
